@@ -1,9 +1,6 @@
-on: 
-  push:
-    branches:
-    - "*"
-  workflow_run:
-
+on:
+  watch:
+    types: started
 jobs:
   build:
     runs-on: ubuntu-20.04
@@ -41,9 +38,7 @@ jobs:
           fakeroot ./build_firmware_modify K2P
           mv /opt/rt-n56u/trunk/images/*.trx /opt/bin/k2p.trx
       - name: Upload artifact
-        uses: "marvinpinto/action-automatic-releases@latest"
+        uses: actions/upload-artifact@v3
         with:
-          repo_token: "${{ secrets.UPLOAD_KEY }}"
-          prerelease: false
-          files: |
-            /opt/bin/*.trx
+          path: /opt/bin
+          name: artifact

@@ -19,7 +19,22 @@ jobs:
 
           # remove the dnsmasq cache size config
           sed -i 's/fprintf(fp, "cache-size=%d\\n", DNS_RELAY_CACHE_MAX);/\/\/fprintf(fp, "cache-size=%d\\n", DNS_RELAY_CACHE_MAX);/' user/rc/services_ex.c
-
+           
+           
+          wget https://raw.githubusercontent.com/hanwckf/rt-n56u/master/trunk/user/shared/defaults.h -O user/shared/defaults.h
+          sed -i "s/FIRMWARE_BUILDS_REV=[0-9]*/FIRMWARE_BUILDS_REV=$(date "+%Y%m%d")/g" ./versions.inc          
+          sed -i "s/2001:470:0:50::2/time1.cloud.tencent.com/g" user/shared/defaults.h
+          sed -i 's/{ "wan_proto", "dhcp" }/{ "wan_proto", "pppoe" }/g' user/shared/defaults.c
+          sed -i 's/{ "wan_pppoe_username", "" }/{ "wan_pppoe_username", "${{ secrets.PPPOE_ID }}" }/g' user/shared/defaults.c
+          sed -i 's/{ "wan_pppoe_passwd", "" }/{ "wan_pppoe_passwd", "${{ secrets.PPPOE_PWD}}" }/g' user/shared/defaults.c
+          sed -i 's/DEF_WLAN_2G_SSID	BOARD_PID "_%s"/DEF_WLAN_2G_SSID	"${{ secrets.WIFI_NAME }}"/g' user/shared/defaults.h
+          sed -i 's/DEF_WLAN_5G_SSID	BOARD_PID "_5G_%s"/DEF_WLAN_5G_SSID	"${{ secrets.WIFI_NAME_5G }}"/g' user/shared/defaults.h
+          sed -i 's/DEF_WLAN_2G_PSK		"1234567890"/DEF_WLAN_2G_PSK		"${{ secrets.WIFI_PWD }}"/g' user/shared/defaults.h
+          sed -i 's/DEF_WLAN_5G_PSK		"1234567890"/DEF_WLAN_5G_PSK		"${{ secrets.WIFI_PWD }}"/g' user/shared/defaults.h
+          sed -i "s/192.168.2.1/10.0.0.1/g" user/shared/defaults.h
+          sed -i "s/192.168.2.100/10.0.0.100/g" user/shared/defaults.h
+          sed -i "s/192.168.2.244/10.0.0.244/g" user/shared/defaults.h
+          
           # build-in smartdns
           rm -rf user/smartdns
           mkdir -p user/smartdns
@@ -34,11 +49,11 @@ jobs:
           wget -P user/xray/ https://raw.githubusercontent.com/felix-fly/v2ray-padavan-doh/master/padavan/xray/Makefile
 
           # k2p
-          wget https://raw.githubusercontent.com/felix-fly/v2ray-padavan-doh/master/k2p.config -O configs/templates/K2P.config
+          wget https://raw.githubusercontent.com/eykfnu/v2ray-padavan-doh/master/k2p.config -O configs/templates/K2P.config
           fakeroot ./build_firmware_modify K2P
-          mv /opt/rt-n56u/trunk/images/*.trx /opt/bin/k2p.trx
+          mv /opt/rt-n56u/trunk/images/*.trx /opt/bin/k2p3.4-smartdns41-xray1.75.trx
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
           path: /opt/bin
-          name: k2p3.4-smartdns41-xray1.75
+          name: k2p

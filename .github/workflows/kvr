@@ -1,0 +1,111 @@
+on:
+
+  watch:
+
+    types: started
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+
+      - name: init
+
+        run: |
+
+          sudo apt-get update
+
+          sudo apt-get -y install unzip libtool-bin curl cmake gperf gawk flex bison nano xxd fakeroot kmod cpio git python3-docutils gettext automake autopoint texinfo build-essential help2man pkg-config zlib1g-dev libgmp3-dev libmpfr-dev libncurses5-dev libltdl-dev wget libc-dev-bin
+
+      - name: build
+
+        run: |
+
+          mkdir /opt/bin
+
+          git clone --depth=1 https://github.com/keke1023/Padavan.git /opt/rt-n56u
+
+          cd /opt/rt-n56u/toolchain-mipsel
+
+          sh dl_toolchain.sh
+
+          cd /opt/rt-n56u/trunk
+
+          wget https://raw.githubusercontent.com/hu-min/v2ray-padavan-doh/master/k2p-usb.conf -O configs/templates/K2P-USB.config
+
+          
+
+          # remove the dnsmasq cache size config
+
+          sed -i 's/fprintf(fp, "cache-size=%d\\n", DNS_RELAY_CACHE_MAX);/\/\/fprintf(fp, "cache-size=%d\\n", DNS_RELAY_CACHE_MAX);/' user/rc/services_ex.c
+
+          sed -i 's/CONFIG_MTD_STORE_PART_SIZ=0x80000/CONFIG_MTD_STORE_PART_SIZ=100000/' configs/boards/K2P-USB/kernel-3.4.x-5.0.config
+
+          sed -i 's/mtd_part_size=65536/mtd_part_size=1048576/g' user/scripts/mtd_storage.sh
+
+          sed -i 's/size_etc="6M"/size_etc="12M"/g' user/scripts/dev_init.sh
+
+          wget https://raw.githubusercontent.com/hanwckf/rt-n56u/master/trunk/user/www/n56u_ribbon_fixed/bootstrap/img/asus_logo.png  -O user/www/n56u_ribbon_fixed/bootstrap/img/asus_logo.png
+
+          wget https://raw.githubusercontent.com/hanwckf/rt-n56u/master/trunk/user/scripts/banner -O user/scripts/banner
+
+          #sed -i '/#wing resume/a\ip6tables -A INPUT -p tcp --dport 22 -j ACCEPT' user/scripts/mtd_storage.sh
+
+          #sed -i '/#wing resume/a\ip6tables -A OUTPUT -p tcp --sport 22 -j ACCEPT' user/scripts/mtd_storage.sh
+
+          #sed -i '/#wing resume/a\ip6tables -A INPUT -p tcp --dport 80 -j ACCEPT' user/scripts/mtd_storage.sh
+
+          #sed -i '/#wing resume/a\ip6tables -A OUTPUT -p tcp --sport 80 -j ACCEPT' user/scripts/mtd_storage.sh
+
+          wget https://raw.githubusercontent.com/hanwckf/rt-n56u/master/trunk/user/shared/defaults.h -O user/shared/defaults.h
+
+          sed -i "s/FIRMWARE_BUILDS_REV=[0-9]*/FIRMWARE_BUILDS_REV=$(date "+%Y%m%d")/g" ./versions.inc
+
+          sed -i "s/ntp1.aliyun.com/ntp.ntsc.ac.cn/g" user/shared/defaults.h
+
+          sed -i "s/2001:470:0:50::2/ntp.tuna.tsinghua.edu.cn/g" user/shared/defaults.h
+
+          sed -i 's/{ "wan_proto", "dhcp" }/{ "wan_proto", "pppoe" }/g' user/shared/defaults.c
+
+          sed -i 's/{ "wan_pppoe_username", "" }/{ "wan_pppoe_username", "${{ secrets.PPPOE_ID }}" }/g' user/shared/defaults.c
+
+          sed -i 's/{ "wan_pppoe_passwd", "" }/{ "wan_pppoe_passwd", "${{ secrets.PPPOE_PWD}}" }/g' user/shared/defaults.c
+
+          sed -i 's/DEF_WLAN_2G_SSID	BOARD_PID "_%s"/DEF_WLAN_2G_SSID	"${{ secrets.WIFI_NAME }}"/g' user/shared/defaults.h          sed -i 's/DEF_WLAN_5G_SSID	BOARD_PID "_5G_%s"/DEF_WLAN_5G_SSID	"${{ secrets.WIFI_NAME }}"/g' user/shared/defaults.h
+
+          sed -i 's/DEF_WLAN_2G_PSK		"1234567890"/DEF_WLAN_2G_PSK		"${{ secrets.WIFI_PWD }}"/g' user/shared/defaults.h
+
+          sed -i 's/DEF_WLAN_5G_PSK		"1234567890"/DEF_WLAN_5G_PSK		"${{ secrets.WIFI_PWD }}"/g' user/shared/defaults.h
+
+          # build-in smartdns
+
+          mkdir -p user/smartdns
+
+          wget https://raw.githubusercontent.com/felix-fly/v2ray-padavan-doh/master/padavan/smartdns/Makefile -O user/smartdns/Makefile
+
+          wget https://raw.githubusercontent.com/felix-fly/v2ray-padavan-doh/master/padavan/user/Makefile -O user/Makefile
+
+          sed -i '$a\export SSL_CERT_FILE=/usr/lib/cacert.pem' user/scripts/profile
+
+          # xray
+
+          mkdir -p user/xray
+
+          wget https://raw.githubusercontent.com/felix-fly/v2ray-padavan-doh/master/padavan/xray/Makefile -O user/xray/Makefile
+
+          fakeroot ./build_firmware_modify K2P-USB
+
+          mv /opt/rt-n56u/trunk/images/*.trx /opt/bin/firmware_k2p_USB.trx
+
+      - name: Upload artifact
+
+        uses: actions/upload-artifact@v3
+
+        with:
+
+          path: /opt/bin
+
+          name: artifact

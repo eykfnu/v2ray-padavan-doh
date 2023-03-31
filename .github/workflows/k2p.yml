@@ -41,4 +41,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           path: /opt/bin
-          name: artifact
+          name: k2p3.4-smartdns41-xray1.75
